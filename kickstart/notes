@@ -1,0 +1,46 @@
+第零步 服务器ip 192.168.1.20/24 一般DHCP服务器使用的都是静态IP
+
+第一步 配置yum
+ 
+第二步骤 设置网卡
+	在VMware中，dhcp服务器和客户端的网卡都要设置为桥接模式（可能还需要禁用VMware中的dhcp服务，在编辑-->虚拟网络编辑器中）
+
+第二步 安装dhcp
+	这里遇到一个问题，我用的是rhel6，按照网上的教程把dhcpd的配置文件模板拷贝到/etc/dhcpd.conf 之后，启动服务会报错，解决办法是拷贝到/etc/dhcp/dhcpd.conf。
+	配置文件参考如下：
+		ddns-update-style interim;
+		igonre client-updates;
+		next-server 192.168.1.20;#PXE 服务器
+		filename "/pxelinux.0";
+		subnet 192.168.1.0 netmask 255.255.255.0{
+			option routers 192.168.1.20;
+			option subnet-mask 255.255.255.0;
+			option domain-name-servers 192.168.1.20
+			option time-offset -18000;
+			range 192.168.1.10 192.168.1.40;
+		}
+第三步 打开tftp
+	tftp默认已经安装，只需要打开就行，编辑/etc/xinetd.d/tftp 把disable设置为no，然后重启xinetd服务 service xinetd restart 即可
+
+第四步 安装vsftp 
+	yum安装vsftpd这个包，然后开机启动，服务启动。 然后把镜像挂载到/var/ftp/pub/rhel6(可能没有这个文件夹，没有就创建个)
+第五步 拷贝文件
+	工作目录为/var/lib/tftpboot/
+	将/var/ftp/pub/rhel6/isolinux/* 复制到 /var/lib/tftpboot/ 下
+	然后mkdir /var/lib/tftpboot/pxelinux.cfg 将/var/lib/tftpboot/isolinux.cfg 复制到pxelinux.cfg/default
+	再然后 编辑pxelinux.cfg/default timeout=30 (也就是三秒) lable linux下 append这行后面添加 linux ks=ftp://192.168.1.20/pub/ks.cfg （这是我的ip，你的应该不一样，如果有人看 ORZ）
+	接着，拷贝/root/anaconda-ks.cfg /var/ftp/pub/ks.cfg 编辑这个文件 第一行加上 url --url="ftp://192.168.1.20/pub/rhel6" 后面再添加一些创建磁盘的内容。这一行一定要删掉：repo --name="Red Hat Enterprise Linux" --baseurl=cdrom:sr1 --cost=100 不然报错。 当然ks.cfg文件也可以用工具生成，这样会比较方便~ 可以安装这个包 system-config-kickstart 
+
+第六步 重启服务
+	重启各种服务 dhcpd xinetd vsftpd 确保都成功启动
+	然后进入客户端，开机进入BIOS 选网络启动，然后就可以装基拉~ 啦啦啦~
+
+
+注意：
+1)	VMware网卡选桥接的话，虚拟机的ip地址就是由真机所在局域网的路由器分配的
+2)	如果虚拟机中只有eth1 而没有eth0 去/etc/udev/rules.d/70-persistent-net.rules 把eth0删了，然后把eth1改成eth0
+3)	地址池不要从服务器的ip开始，比如说我的服务器ip是192.168.1.20，range后面的ip就不要写这个，这样客户机就不用服务器的DHCP了，会使用服务器所在的局域网的DHCP服务器（一般来说，就是路由器。）
+4）我参考了这个视频https://www.youtube.com/watch?v=9Vc6-0smd64，介个要翻墙，我花了20大洋 T T 
+5）可能还需要关闭防火墙，SElinux之类的。（此举也是为了tftp服务的，如果不关掉，客户端会报错tftp open timeout）
+6）安装中报错unable to read package metadata from repository，谷歌说可能是镜像的问题，然而并不是，问题是配置文件错了（就是ks.cfg中repo那一行没有删掉）。。所以配置文件一定要仔细看！
+7）参考了这个视频https://www.youtube.com/watch?v=c8NoeBNU3Zs，可惜作者就出了几个视频，好可惜啊。。
