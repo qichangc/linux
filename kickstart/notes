@@ -37,10 +37,11 @@
 
 
 注意：
-1)	VMware网卡选桥接的话，虚拟机的ip地址就是由真机所在局域网的路由器分配的
-2)	如果虚拟机中只有eth1 而没有eth0 去/etc/udev/rules.d/70-persistent-net.rules 把eth0删了，然后把eth1改成eth0
-3)	地址池不要从服务器的ip开始，比如说我的服务器ip是192.168.1.20，range后面的ip就不要写这个，这样客户机就不用服务器的DHCP了，会使用服务器所在的局域网的DHCP服务器（一般来说，就是路由器。）
+1) VMware网卡选桥接的话，虚拟机的ip地址就是由真机所在局域网的路由器分配的
+2) 如果虚拟机中只有eth1 而没有eth0 去/etc/udev/rules.d/70-persistent-net.rules 把eth0删了，然后把eth1改成eth0
+3) 地址池不要从服务器的ip开始，比如说我的服务器ip是192.168.1.20，range后面的ip就不要写这个，这样客户机就不用服务器的DHCP了，会使用服务器所在的局域网的DHCP服务器（一般来说，就是路由器。）
 4）我参考了这个视频https://www.youtube.com/watch?v=9Vc6-0smd64，介个要翻墙，我花了20大洋 T T 
 5）可能还需要关闭防火墙，SElinux之类的。（此举也是为了tftp服务的，如果不关掉，客户端会报错tftp open timeout）
 6）安装中报错unable to read package metadata from repository，谷歌说可能是镜像的问题，然而并不是，问题是配置文件错了（就是ks.cfg中repo那一行没有删掉）。。所以配置文件一定要仔细看！
 7）参考了这个视频https://www.youtube.com/watch?v=c8NoeBNU3Zs，可惜作者就出了几个视频，好可惜啊。。
+8）客户机不要在BIOS中将启动首选项设置为网络启动，这样客户机就会陷入无休止的安装系统中。。。只需要开机时选择网络启动即可。
