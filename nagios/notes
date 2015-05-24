@@ -1,0 +1,182 @@
+Nagios
+	这是一款监控主机和服务的开源软件，其本身并不提供监控功能，而是由插件来完成的。Nagios的插件在 libexec/文件夹中
+
+第零步：
+	监测机(server)的ip是192.168.52.128，被检测机(client)的ip是192.168.52.129。防火墙都关掉，selinux都关掉，然后互相ping得通就okay。
+
+第二步：
+	装包，server需要安装httpd(因为Nagios是通过web来管理的)，也要安装php和xinetd(可能默认已经安装)
+	创建nagios用户，组，还有目录/usr/local/nagios，并且将该用户的所属用户和所属组都设为nagios。然后安装Nagios core包，可以去nagios官网下载，下载完之后是一个tar.gz包，解压，然后进入生成的目录，输入以下命令：
+		# ./configure --prefix=/usr/local/nagios
+		# make all
+		# make install && make install-init && make install-commandmode && make install-config
+	然后将nagios服务添加到系统中，
+		# chkconfig --add nagios && chkconfig nagios on 
+	然后会在/usr/local/nagios/ 下生成五个目录，表示nagios安装成功。
+
+第三步：
+	安装nagios plugins 插件，同样，先去下载包，解压然后进入目录，输入以下命令：
+		# ./configure --prefix=/usr/local/nagios
+		# make && make install
+	这样插件就安装完成了
+
+第四步：
+	修改apache配置文件，一般来说在这里/etc/httpd/conf/httpd.conf，将
+		User daemon
+		Group	daemon
+	(可能不是daemon，不用管)
+	改成如下
+		User nagios
+		Group nagios
+	还需要在
+		<IfModule dir_module> 
+　　		DirectoryIndex index.html 
+		</IfModule>
+		(也可能不是这种形式，反正找找差不多的就行)
+	index.html后面添加index.php
+	然后还需要添加这一行：
+		AddType application/x-httpd-php .php
+
+	除此之外，为了不让任何人都能访问我们的nagios，需要做下访问控制，提供用户名和密码才可以访问。所以在配置文件后面再添加一下语句：
+		#setting for nagios 
+		ScriptAlias /nagios/cgi-bin "/usr/local/nagios/sbin" 
+		<Directory "/usr/local/nagios/sbin"> 
+		     AuthType Basic 
+		     Options ExecCGI 
+		     AllowOverride None 
+		     Order allow,deny 
+		     Allow from all 
+		     AuthName "Nagios Access" 
+		     AuthUserFile /usr/local/nagios/etc/htpasswd             //用于此目录访问身份验证的文件 
+		     Require valid-user 
+		</Directory> 
+		Alias /nagios "/usr/local/nagios/share" 
+		<Directory "/usr/local/nagios/share"> 
+		     AuthType Basic 
+		     Options None 
+		     AllowOverride None 
+		     Order allow,deny 
+		     Allow from all 
+		     AuthName "nagios Access" 
+		     AuthUserFile /usr/local/nagios/etc/htpasswd 
+		     Require valid-user 
+		</Directory> 
+
+	然后还需要输入以下命令
+		# htpasswd -c /usr/local/nagios/etc/htpasswd chen #chen是用户名，可以换成别的也okay
+	最后启动httpd服务，然后打开浏览器，访问192.168.52.128/nagios 就会看到nagios的页面。
+
+第五步：
+	配置文件说明
+		cgi.cfg 				控制cgi访问的配置文件
+		nagios.cfg 				nagios 的主配置文件
+		resource.cfg 			变量定义文件，或资源文件
+		objects					一个目录，包含了许多配置文件模板
+		object/commands.cfg 	命令定义配置文件，里面的命令可以被其他文件引用
+		object/contacts.cfg 	定义联系人和联系人组的配置文件
+		object/localhost.cfg 	定义本地主机的配置文件
+		object/printer.cfg 		打印机，默认不启用
+		object/switch.cfg 		路由器, 默认也不启用
+		object/templates.cfg 	主机和服务的配置文件模板，可以被引用
+		object/timeperiods.cfg 	定义监控时间段的配置文件
+		object/windows.cfg 		啥也不说了，希望用不着这个。
+	一般来说：
+		用hosts.cfg文件来定义主机和主机组（该文件默认不存在）
+		用services.cfg文件来定义服务	（也不存在）
+		用contacts.cfg来定义联系人和联系组
+		用commands.cfg来定义命令
+		用timeperiods.cfg来定义监控时间段
+		用templates.cfg作为资源引用文件
+第六步：
+	启动nagios，和普通启动服务的方式一样
+
+第七步：
+	对被监测机器的本地信息进行监控
+	首先需要在server上安装check_nrpe 插件，
+	然后在client上安装nrpe daemon
+	主要监控过程如下：
+		1. Nagios 会运行check_nrpe 这个插件，告诉它要检查什么；
+		2. check_nrpe 插件会连接到远程的NRPE daemon，所用的方式是SSL；
+		3. NRPE daemon 会运行相应的Nagios 插件来执行检查；
+		4. NRPE daemon 将检查的结果返回给check_nrpe 插件，插件将其递交给nagios做处理。
+	在client上，
+		添加nagios用户和组，创建/usr/local/nagios 并将所属用户和所属组设置为nagios
+		安装nagios plugins插件(并不需要安装nagios core)，还是一样，下载安装包，解压，进入目录，输入以下命令：
+		# ./configure --prefix=/usr/local/nagios
+		# make && make install
+		安装nrpe，首先下载安装包，然后安装，使用以下命令：
+		# wget http://prdownloads.sourceforge.net/sourceforge/nagios/nrpe-2.13.tar.gz
+		#如果该地址失效，就换一个。
+		# tar zxvf nrpe-2.13.tar.gz
+		# cd nrpe-2.13
+		# ./configure
+		# make all
+		# make install-plugin #被监控机器并不需要这个插件，当然装下也无妨，可以做测试用
+		# make install-daemon
+		# make install-daemon-config
+	完了看看/usr/local/nagios/ 下有没有生成5个目录。
+		安装xinetd脚本（当然首先需要保证xinetd安装了，一般都是装了的）
+		# make install-xinetd
+		修改/etc/xinetd/nrpe, 在only_from = 后面添加监控机器的ip，本例就是192.168.52.128
+	然后在/etc/services 文件最后追加这一行：
+		nrpe 			5666/tcp		#nrpe
+	重启xinetd服务，然后使用netstat -tulnpa 看看5666端口有没有监听。#注意，如果防火墙是开着的，注意配置防火墙策略。
+
+	然后使用这个命令 
+	# /usr/local/nagios/libexec/check_nrpe -H localhost
+	如果返回了NRPE的版本 说明配置okay~
+
+	在server上，
+		安装check_nrpe 插件
+		# tar zxvf nrpe-2.13.tar.gz 
+		# cd nrpe-2.13
+		# ./configure
+		# make all
+		# make install-plugin
+	这样就okay了，然后输入这个命令：
+		#/usr/local/nagios/libexec/check_nrpe -H 192.168.52.129 
+	如果返回了版本信息，说明配置okay~
+
+第八步：
+	在server上
+	首先可能需要在/usr/local/nagios/etc/objects/commands.cfg中添加这一段(也可能默认就有，总之没有就需要添加)
+		# 'check_nrpe' command definition
+		define command{
+		        command_name    check_nrpe         # 定义命令名称为check_nrpe,在services.cfg中要使用这个名称.
+		        command_line    $USER1$/check_nrpe -H $HOSTADDRESS$ -c $ARG1$       #这是定义实际运行的插件程序.
+		                        # 这个命令行的书写要完全按照check_nrpe这个命令的用法,不知道用法的就用check_nrpe –h查看.
+		        }
+	然后，编辑services.cfg 中定义对client的监控内容，举个例子
+		define service{
+        use                     local-service
+        host_name               chenclient
+        service_description     Total Processes
+        check_command           check_nrpe!check_total_procs
+        }
+     默认在nrpe.cfg文件中只提供了几个监控命令，如果需要添加别的功能，需要这样：
+     	在client上，编辑/usr/local/nagios/etc/nrpe.cfg, 追加这样的内容：
+     		command[check_swap]=/usr/local/nagios/libexec/check_swap -w 20% -c 10%
+     	然后重启xinetd(也可能不需要重启)
+     然后还要在server上添加这个监控项目：
+     	在services.cfg 后面追加这样的内容：
+     		define service{
+		        use                     local-service
+		        host_name               chenclient
+		        service_description     Check Swap
+		        check_command           check_nrpe!check_swap
+		        }
+	最后，在server上，重启nagios服务，登录nagios web
+
+第九步：
+	配置邮件报警，
+	首先在server上要存在sendmail组件，没有就装包，然后启动服务。当然要能访问外网。
+	可以先使用以下命令测试邮件功能：
+		# echo "hi" | mail 740936114@qq.com
+	然后在contacts.cfg 中要添加740936114@qq.com这个联系人
+	然后在client中停掉某些服务，测试下邮件报警功能吧~
+
+
+注意：
+1）如果在安装nagios过程中报错，可能是一些依赖包没有安装，或者是下载的nagios安装包有问题，一般来说，去google搜索对应的报错信息，都可以解决问题。
+2）配置文件中有些注释使用 "#" 可能会出问题，改为 ";" 注释可以解决问题
+3）如果无法实现邮件报警，可能是监控机中的hosts文件没有添加被监控机的记录，当然，配置DNS也应该是阔以的~
