@@ -1,0 +1,26 @@
+KVM是linux内核自带的一项虚拟化功能，所以并不需要去网上下载额外的安装包，
+只需要本地的镜像即可。具体安装的软件包还是需要去找google呀，不过很容易就可以搜索的到
+
+1）安装完KVM之后，发现了一个问题，在KVM中安装虚拟机时，默认的路径是在/var/lib/libvirt/images/  下
+  然而，我在安装linux真机的时候，只给根分区分了50个G，刚安装了一个windows虚拟机，就没多少空间了。
+  如何能在继续安装其他虚拟机，解决的办法有很多种，比如对根分区扩容，这里我提供一个别的方法：
+  将windows的images文件mv到其他分区中，然后在原目录下做一个硬链接（软链接无法跨分区），这样既可以
+  腾出大量的空间安装别的linux虚拟机，也不会影响原来windows虚拟机的使用。
+  
+2）使用linux模板克隆虚拟机，首先安装一个模板系统，就是正常安装，KVM默认是最小化安装，当然我们也只需要最小化
+  安装，登录系统后，网卡只有一个本机的回环设备，所以要配置网卡，编辑文件/etc/sysconfig/network-scripts/ifcfg-eth0
+  添加IPADDR=  等号的后面填写一个和真机的桥接网卡（virbr0）同一个网段的ip，比如真机的virbr0是192.168.122.1 那么虚拟机
+  就应该填 IPADDR=192.168.122.X  其中“X”看你心情填，然后service network restart。然后ping下本机，没有问题的话是ping的通的
+  当然还可以顺便配置下yum，因为最小化安装的
+  虚拟机里不会有镜像文件，所以yum源应该使用ftp。可以在本机上搭建一个ftp服务器，将镜像文件挂在到/var/ftp/pub/linux/ 下
+  然后在虚拟机里编辑/etc/yum.repo.d/chen.repo （文件名随便下，只要是.repo结尾就成）：
+    [base] #名字随便写
+    name=chen #随便写。。
+    baseurl=ftp://192.168.122.1/pub/linux/
+    enabled=1
+    gpgcheck=0
+  然后yum clean all 
+  yum makecache
+  如果没有出错信息 yum就配置okay了
+  最后，这是一个虚拟机模板，还需要将/etc/udev/rules.d/70-persistent-net.rules 中关于eth0的那行删掉(其实这个文件只有这一行有效。。)
+  这是为了防止克隆机器的时候，再生产一个eth1。 最后，关掉这个虚拟机，作为一个木板，不要再启动了，克隆新机器就好啦～
