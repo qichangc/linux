@@ -1,41 +1,11 @@
-想做下heartbeat 双机热备的实验，结果居然一开始就卡在了装包上。
-虽然heartbeat的几个安装包很好找，但是这些包却需要大量的依赖包，
-在和依赖关系战斗了一天一夜后，终于解决了问题！。
+  想做下heartbeat 双机热备的实验，结果居然一开始就卡在了装包上。
+  虽然heartbeat的几个安装包很好找，但是这些包却需要大量的依赖包，
+  在和依赖关系战斗了一天一夜后，终于解决了问题！。
+
 1）在最小化安装的机器上安装heartbeat，因为要用到在线的yum源来解决一些包的依赖关系
-（自带光盘的yum源并不能够足以解决所有的依赖关系），所以这台机器要能上网，不能就配置下虚拟机把。。那么先配置下在线的yum，在/etc/yum.repos.d/ 下创建rpmforge.repo并且
-添加一下内容：
-	### Name: RPMforge RPM Repository for RHEL 6 - dag
-	### URL: http://rpmforge.net/
-	[rpmforge]
-	name = RHEL $releasever - RPMforge.net - dag
-	baseurl = http://apt.sw.be/redhat/el6/en/$basearch/rpmforge
-	mirrorlist = http://mirrorlist.repoforge.org/el6/mirrors-rpmforge
-	#mirrorlist = file:///etc/yum.repos.d/mirrors-rpmforge
-	enabled = 1
-	protect = 0
-	gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rpmforge-dag
-	gpgcheck = 0
-
-	[rpmforge-extras]
-	name = RHEL $releasever - RPMforge.net - extras
-	baseurl = http://apt.sw.be/redhat/el6/en/$basearch/extras
-	mirrorlist = http://mirrorlist.repoforge.org/el6/mirrors-rpmforge-extras
-	#mirrorlist = file:///etc/yum.repos.d/mirrors-rpmforge-extras
-	enabled = 0
-	protect = 0
-	gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rpmforge-dag
-	gpgcheck = 0
-
-	[rpmforge-testing]
-	name = RHEL $releasever - RPMforge.net - testing
-	baseurl = http://apt.sw.be/redhat/el6/en/$basearch/testing
-	mirrorlist = http://mirrorlist.repoforge.org/el6/mirrors-rpmforge-testing
-	#mirrorlist = file:///etc/yum.repos.d/mirrors-rpmforge-testing
-	enabled = 0
-	protect = 0
-	gpgkey = file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rpmforge-dag
-	gpgcheck = 0
-注意这里的gpgcheck=1，本来是1的，但是我没有下载key，因为我懒，，一般还是需要检查下key的。
+  （自带光盘的yum源并不能够足以解决所有的依赖关系），所以这台机器要能上网，不能就配置下虚拟机把。。
+  那么先配置下在线的yum，把rpmforge.repo这个文件复制在/etc/yum.repos.d/ 
+  注意文件里的gpgcheck=0，本来是1的，但是我没有下载key，因为我懒，，一般还是需要检查下key的。
 
 2）然后就是heartbeat的安装包了，有这些： 
 	heartbeat-2.1.3-3.el5.centos.x86_64.rpm
@@ -44,16 +14,17 @@
 	heartbeat-ldirectord-2.1.3-3.el5.centos.x86_64.rpm
 	heartbeat-pils-2.1.3-3.el5.centos.x86_64.rpm
 	heartbeat-stonith-2.1.3-3.el5.centos.x86_64.rpm
-这些包网上都可以找到的，还有下面两个依赖包要下载，在线的yum源也没有这两个包：
+  这些包网上都可以找到的，还有下面两个依赖包要下载，在线的yum源也没有这两个包：
 	ipvsadm-1.26-4.el6.x86_64.rpm
 	lib64gnutls13-2.0.0-2mdv2008.0.x86_64.rpm
-好了，先执行  yum localinstall ipvsadm-1.26-4.el6.x86_64.rpm
+  好了，先执行  yum localinstall ipvsadm-1.26-4.el6.x86_64.rpm
 	    yum localinstall lib64gnutls13-2.0.0-2mdv2008.0.x86_64.rpm
-如果，如果你的机器不能上网，或者没有配置好额外的在线yum源，安装这两个包也是有依赖性的问题的。
-然后，执行 yum localinstall heartbeat* 把所有的heartbeat的包都装上，同时还会安装一大堆依赖包。
+  如果，如果你的机器不能上网，或者没有配置好额外的在线yum源，安装这两个包也是有依赖性的问题的。
+  然后，执行 yum localinstall heartbeat* 把所有的heartbeat的包都装上，同时还会安装一大堆依赖包。
 
 3）这个实验是在rhel6 64位最小化安装的机器上做的，可能你的机器的情况不一样。需要的依赖包也可能不一样。
-那怎么办呢，可以这样，先下载好对应系统版本的heartbeat的6个安装包，这个比较好找，然后
-yum localinstall heartbeat* ，如果有额外的依赖包，系统会提示的，然后去网上找这些包就可以了。一般来说，配置了在线的yum源，所需要的依赖包就不会很多，也比较好找。
+  那怎么办呢，可以这样，先下载好对应系统版本的heartbeat的6个安装包，这个比较好找，然后
+  yum localinstall heartbeat* ，如果有额外的依赖包，系统会提示的，然后去网上找这些包就可以了。
+  一般来说，配置了在线的yum源，所需要的依赖包就不会很多，也比较好找。
 
 
