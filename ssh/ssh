@@ -1,0 +1,17 @@
+1）最小化安装的机器可以被ssh，而不能ssh到其他机器上。
+因为并没有安装ssh的客户端。可以这样：
+yum search ssh
+查找与ssh相关的包，然后看到openssh-clients
+就是它没跑了！安装之
+yum -y install openssh-clients
+这样就可以ssh别的机器了
+2）然而每次登录的时候都需要输入密码，这样一点都不酷啊。。
+有没有酷酷的方法。可以这样，在准备ssh到别的机器的 这台机器上。
+先ssh到被ssh的机器一次，然后exit，然后在用户的家目录下
+会生成一个隐藏目录 .ssh/ 进入这个目录，
+输入这个命令 ssh-keygen -t rsa 然后一直回车，当然不你也可以根据
+自己的喜好输入些东西。 然后就会生成几个文件。公钥，私钥，还有个hosts
+把公钥（id_rsa.id）复制到被ssh机器的上：
+ssh-copy-id -i id_rsa.pub root@被ssh机器的ip
+然后ssh一下，这次还需要密码，然后下次不需要密码，表示成功啦～
+然后该机器上会生成一个文件authorized_keys，最好把它的权限改成400，这比较安全。

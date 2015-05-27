@@ -1,0 +1,10 @@
+VMware 中linux虚拟机上网问题
+1）
+	在vmware中最小化安装rhel6，不能用vmware的自动安装，也就是先创建
+	一快空的硬盘，配置完成后再在虚拟光驱中加入linux的镜像，然后网卡选择桥接，
+因为实验中我使用无线上网的，所以桥接在wlan这块网卡上。
+	然后启动虚拟机，除了一开始skip掉光盘检查外。基本没有什么需要选择的，一直下一步就好。
+然后安装完成后，ifconfig下，可以看到只有lo这个设备，可以这样，ifconfig eth0 up 启动eth0
+这块网卡，然后进入eth0的配置文件，加上这一行BOOTPROTO=dhcp，然后service network restart
+然后就会得到一个和物理机器无线网一个网段的ip，可以试着ping下外网（我都是ping 百度，hahah）。
+

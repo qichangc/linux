@@ -1,0 +1,4 @@
+安装完rhel后，图像化界面无法配置vpn（add的图标是灰色的）
+一般来说是没有安装NetworkManager-openswan这个包
+yum install NetworkManager-openswan -y
+就可以了～
