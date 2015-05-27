@@ -1,0 +1,15 @@
+使用vmware安装虚拟机，使用桥接网卡，然后在虚拟机里设置网卡为dhcp
+那么真实网络中的路由器就会给虚拟机分配一个ip，并且这个时候也是可以上网的
+如何使用静态ip并且保证可以上网呢，很简单，编辑/etc/sysconfig/network-scripts/ifcfg-eth0
+   添加 DEVICE="eth0"
+	HWADDR= #mac地址，不知道咋办，这个文件里有/etc/udev/rules.d/70-persistent-net.rules 进去看看就知道啦～
+	BOOTPROTO=static
+        IPADDR= #这里写与真机在同一网段的ip，真机有很多网卡，很多ip咋办，很简单，用真机用来上网的那个网卡的ip，比如真机是无线网上网，那就用wlan的ip
+       	NETMASK=255.255.255.0 #一般都是这个子网掩码，但是也要依具体情况而定。
+	GATEWAY= #不知到网关，没关系，去真机执行下这个命令 route -n 就知道啦～
+	ONBOOT=yes 
+一般只要填这几项就okay 然后service network restart
+ifconfig下就可以看到新设置的ip了，然后ping下百度，靠，ping 不通，童话里都是骗人的！
+别急，可能是域名解析的问题，去真机看看/etc/resolv.conf 这个文件，里面有DNS地址，复制下来
+拷贝到本机的/etc/resolv.conf下，然后再ping下百度（论百度的用处 233），如果路由器没有坏掉的话，应该是可以通的。
+ 
