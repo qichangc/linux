@@ -27,4 +27,43 @@
   yum localinstall heartbeat* ，如果有额外的依赖包，系统会提示的，然后去网上找这些包就可以了。
   一般来说，配置了在线的yum源，所需要的依赖包就不会很多，也比较好找。
 
+4)配置heartbeat
+	需要两台机器client1和client2（名字随便取，你取SB1和SB2都没问题。。）
+	网络配置：
+	client1：eth0：192.168.1.111/24
+		 eth1：172.16.158.130/24
+	client2：eth0：192.168.1.112/24
+		 eth1：172.16.158.131/24
+	这里的eth1是用来给heartbeat通信用的，如果是用串口线连接两台机器的话，就不许要额外的网卡了。
+	eth1的ip可以是dhcp自动获得的，也可以是手动配置的，但是一定要保证能ping得通。
+	然后分别在两台机器上配置hosts文件，把主机名和ip都加进去。当然也可以配置DNS，这也是极好的。
+	两台机器都安装好heartbeat的安装包，然后在client1中进入这个目录/usr/share/doc/heartbeat-2.1.3/
+	里面都是一些配置文件模板，拷贝三个文件：authkeys,haresources,ha.cf 到/etc/ha.d/ 下
+这样配置文件就有了，编辑这三个文件，对于authkeys，添加：
+		auth 1
+		1 md5 hello! #md5后面的字符串随便写，也可以用这个命令随机产生加密后字符
+			     #dd if=/dev/random bs=512 count=1 | openssl md5 
+	对于haresources，添加：
+		client1 IPaddr::192.168.1.120/24/eth0/ httpd #主机名，虚拟ip，管理的服务
+	对于ha.cf 添加：
+		debugfile /var/log/ha-debug
+		logfile /var/log/ha-log
+		logfacility local0
+		keepalive 2
+		deadtime 25
+		warntime 10
+		initdead 50
+		udpport 694
+		ucast eth1 172.16.158.131 #写另一台节点的ip
+		auto_failback on
+		node client1
+		node client2
+		ping 172.16.158.1 #eth1的网关
+	然后拷贝这三个文件到client2中，注意要把ha.cf中的ucast eth1 改成对方的ip。
+	然后两台机器都安装httpd，在/var/www/html/ 下编辑一个index.html 文件，两个文件里添加
+不同的内容，这样可以做区分。然后两台机器启动httpd服务，启动heartbeat服务。
+	在第三台机器的浏览器访问192.168.1.120 这个虚拟ip，就是client1 节点的信息，然后将client1
+的heartbeat服务关掉，再次访问192.168.1.120，页面应该会显示client2节点的信息。说明配置成功。
 
+注意：
+1）在这里，如果仅仅是在client1上关掉httpd服务，heartbeat是没有办法切换服务到client2这台机器上的，因为它只监测机器的状态，而不监测服务。那么怎么办呢，这个时候就需要CRM了。	
