@@ -1,0 +1,12 @@
+mysql-proxy 是一个位于客户端和数据库服务器之间的程序，其本身并不需要安装mysql服务端程序，只需要安装客户端就可以
+mysql-proxy的功能有许多，比如负载均衡，查询过滤等，这里使用他做读写分离。
+
+1）需要两台mysql server，并且配置好AB复制
+2）在proxy上装包：lua，libevent，check，mysql客户端，还有mysql-proxy
+3）在proxy上执行/usr/local/mysql-proxy/sbin/mysql-proxy --proxy-backend-addresses=192.168.1.201:3306 
+     --proxy-read-only-backend-addresses=192.168.1.202:3306
+     --proxy-lua-script=/usr/local/mysql-proxy/share/mysql-proxy/rw-splitting.lua&
+   注意：mysql-proxy的安装目录可能不一样，根据实际情况修改，第一个IP是mysql master，负责写，第二个IP是mysql slave 负责读
+   这条命令执行完之后是堵塞状态的，所以需要在命令最后加一个&，就可以在后台执行了。
+4）在客户机上安装mysql客户端，然后使用mysql -u -o -h登录mysql-proxy这台机器，如果报错，可能是mysql服务端没有授权。
+5）读写操作，测试下。
