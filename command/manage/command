@@ -1,0 +1,23 @@
+1) linux系统中查看某目录的大小
+	du -sh /dir
+
+2）查看当前目录下占用磁盘空间最大的十个文件
+	du -cks * | sort -nr | head -n 10
+
+3) 生成指定大小的文件
+	dd if=/dev/zero of=/tmp/tmpfile bs=1024 count=10
+
+4) 制作驱动盘（还不是很懂诶）
+	dd if=rhel40.img of=/dev/fd0 bs=10k
+
+5) 制作ISO镜像
+	dd if=/dev/cdrom of=/root/cd1.iso
+
+6) 显示eth0的ip
+	ifconfig eth0 | grep "inet addr" | awk -F [:" "]+ '{print $4}'
+
+7) 查看服务器网络连接状态并汇总信息
+	netstat -an | awk '/^tcp/ {++S [$NF]} END {for (a in S) print a,S[a]}'
+
+8) 查看端口被哪些程序占用
+	lsof -i:22	#22号端口是ssh的
