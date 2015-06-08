@@ -28,7 +28,8 @@
 	工作目录为/var/lib/tftpboot/
 	将/var/ftp/pub/rhel6/isolinux/* 复制到 /var/lib/tftpboot/ 下
 	然后mkdir /var/lib/tftpboot/pxelinux.cfg 将/var/lib/tftpboot/isolinux.cfg 复制到pxelinux.cfg/default
-	再然后 编辑pxelinux.cfg/default timeout=30 (也就是三秒) lable linux下 append这行后面添加 linux ks=ftp://192.168.1.20/pub/ks.cfg （这是我的ip，你的应该不一样，如果有人看 ORZ）
+	再然后 编辑pxelinux.cfg/default timeout=30 (也就是三秒) lable linux下 append这行后面添加 linux ks=ftp://192.168.1.20/pub/ks.cfg （这是我的ip，你的应该不一样，如果有人看 ORZ）(注意，一定
+要在同一行 后面添加！不然安装的时候就读秒的时候就是死循环了。。)
 	接着，拷贝/root/anaconda-ks.cfg /var/ftp/pub/ks.cfg 编辑这个文件 第一行加上 url --url="ftp://192.168.1.20/pub/rhel6" 后面再添加一些创建磁盘的内容。这一行一定要删掉：repo --name="Red Hat Enterprise Linux" --baseurl=cdrom:sr1 --cost=100 不然报错。 当然ks.cfg文件也可以用工具生成，这样会比较方便~ 可以安装这个包 system-config-kickstart 
 
 第六步 重启服务
