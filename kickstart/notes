@@ -11,7 +11,7 @@
 		ddns-update-style interim;
 		igonre client-updates;
 		next-server 192.168.1.20;#PXE 服务器
-		filename "/pxelinux.0";
+		filename "/pxelinux.0";#千万要注意！不要写成了pxelinux.o orz
 		subnet 192.168.1.0 netmask 255.255.255.0{
 			option routers 192.168.1.20;
 			option subnet-mask 255.255.255.0;
