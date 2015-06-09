@@ -1,0 +1,68 @@
+论如何搭建DNS，好久没搭建，一弄就出问题，搞了一个晚上，真伤感。。
+1）装包bind bind-utils bind-chroot
+2）启动DNS服务 service named start 第一次要生成key，时间比较久，可以手动生成
+	rndc-confgen -r /dev/urandom -a
+3）然后就成功启动啦，然后就是配置文件了，先把selinux iptables关了
+4）编辑/etc/named.conf
+	options {
+        listen-on port 53 { 172.16.158.129; };
+        directory       "/var/named";
+        dump-file       "/var/named/data/cache_dump.db";
+        statistics-file "/var/named/data/named_stats.txt";
+        memstatistics-file "/var/named/data/named_mem_stats.txt";
+        allow-query     { any; };
+        recursion yes;
+
+#       dnssec-enable yes;
+#       dnssec-validation yes;
+#       dnssec-lookaside auto;
+
+        /* Path to ISC DLV key */
+#       bindkeys-file "/etc/named.iscdlv.key";
+#
+#       managed-keys-directory "/var/named/dynamic";
+};
+监听的地址一定要写本机的ip，而不是回环地址，填了就傻逼了。
+然后允许所有客户端访问        allow-query     { any; };
+
+5) 编辑/etc/named.rfc1912.zones 这个文件，在这里添加要维护的域名，当然也可以不在这里写
+	zone "chen.com" IN {
+        type master;
+        file "chen.com";
+        allow-update { none; };
+};
+
+//zone "158.16.172.in-addr.arpa" IN {
+//      type master;
+//      file "172.16.158.chen.arpa";
+//      allow-update { none; };
+//};
+
+有模板的，抄过来就好，因为我暂时只做正向解析，所以反向解析先注释了。
+
+6) 编辑/var/named/chen.com
+	$TTL 1D
+@       IN SOA @ server.chen.com. (
+                                        0       ; serial
+                                        1D      ; refresh
+                                        1H      ; retry
+                                        1W      ; expire
+                                        3H )    ; minimum
+@               IN      NS      server.chen.com.
+server          IN      A       172.16.158.129
+www.chen.com    IN      A 172.16.158.129
+client1         IN      A       172.16.158.128
+client2         IN      A       172.16.158.130
+
+一定要注意写法，
+
+7) 请让named这个服务可以读到chen.com这个文件，所以将所属组改成named就好啦
+
+8) 改/etc/resolv.conf 添加 nameserver DNS的ip
+
+9) nslookup 测试下
+
+注意:
+1）如果本机的网络是dpcp获得的，那么可能每次重启的时候，nameserver就改了，所以要在网卡的配置文件添加
+	在gateway这行下面加 DNS1=本机ip
+
