@@ -1,5 +1,5 @@
 1) linux系统中查看某目录的大小
-	du -sh /dir
+	du -sh /dir (du -sh /dir/* 即可查看每个文件所占的大小)
 
 2）查看当前目录下占用磁盘空间最大的十个文件
 	du -cks * | sort -nr | head -n 10
