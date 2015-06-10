@@ -1,0 +1,10 @@
+#查看cpu的物理个数
+cat /proc/cpuinfo | grep "physical id" | sort | uniq | wc -l
+
+#查看每个cpu的核心数
+cat /proc/cpuinfo | grep "cpu cores" | uniq
+
+#显示逻辑cpu的个数，也就是processor的个数
+cat /proc/cpuinfo | grep "processor" | wc -l
+
+#一般来讲，物理cpu个数 * 每个cpu核心数 = 逻辑cpu的个数，如果不等，说明CPU支持超线程技术，很牛X把

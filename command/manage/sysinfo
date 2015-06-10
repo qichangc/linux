@@ -1,0 +1,19 @@
+#查看系统内核
+
+uname -r #或者
+uname -a
+
+#查看系统是32位还是64位
+ls -lF / | grep /$ | grep lib64 #就是查找有木有lib64目录，或者
+
+file /sbin/init #结果会告诉你答案
+
+#查看发行版本信息
+lsb_release -a
+
+#列出已经载入的模块
+lsmod
+
+#列出pci（外设）的信息
+lspci | grep Ether #根据具体情况选择过滤
+

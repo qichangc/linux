@@ -1,0 +1,9 @@
+#查看内存使用情况，最简单的方法
+free -m
+结果如下
+             total       used       free     shared    buffers     cached
+Mem:          5963       3101       2862          0         33       1942
+-/+ buffers/cache:       1125       4837
+Swap:         8015        506       7509
+
+一般来说，4837就是程序可以使用的空余内存了，而并不是2862

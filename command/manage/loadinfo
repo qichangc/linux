@@ -1,0 +1,40 @@
+#查看系统的平均负载，最简单的
+uptime
+
+结果：
+ 17:35:49 up 7 days, 23:16,  7 users,  load average: 0.26, 0.25, 0.22
+
+解释：执行命令的时间，系统开机了多久，当前有多少用户，一般是当前打开的窗口数+1，前提是没有被远程登录
+如果说，用户数不对，说不定就是被入侵了哦。然后是平均负载，三个数值，分别是一分钟，五分钟，十五分钟前的
+系统负载，这个数值一般来说不能大于逻辑cpu的个数，大于就说明cpu有瓶颈，当然，最好是小于逻辑cpu个数*0.7
+
+#uptime 的升级版： 
+w
+
+结果：
+ 17:36:17 up 7 days, 23:17,  7 users,  load average: 0.35, 0.27, 0.23
+USER     TTY      FROM              LOGIN@   IDLE   JCPU   PCPU WHAT
+root     tty1     :0               02Jun15  7days  2:19m  2:19m /usr/bin/Xorg :0 -nr -verbose -auth /var/run/gdm/
+root     pts/7    :0.0             Mon13    0.00s  0.39s  0.09s w
+root     pts/16   :0.0             Tue20   42.00s  0.44s  0.02s vim loadinfo
+root     pts/17   :0.0             Tue20    1:40m  7.01s  6.94s ssh 172.16.158.129
+root     pts/18   :0.0             Tue20   16:56   1.71s  1.62s ssh root@172.16.158.128
+root     pts/19   :0.0             Tue20    3:11m  0.52s  0.45s ssh 172.16.158.130
+root     pts/20   :0.0             Tue22   19:16m  0.17s  0.13s ssh 172.16.158.129
+
+解释：不光告诉你有多少用户，还告诉你这些用户从哪里登录的，以及最近使用的命令
+
+#w的加强版：
+top
+
+解释：这个是动态显示的，显示的内容更多
+
+#还有一个命令
+vmstat
+
+结果：
+procs -----------memory---------- ---swap-- -----io---- --system-- -----cpu-----
+ r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st
+ 1  0 482396 1455840 669344 1966952    1    1    43    47   11   10 13 16 70  1  0	
+
+解释：主要关注r（等待运行的进程数），如果r总是大于3或者4，并且id（cpu闲置时间）总是小于50，说明cpu负载大
