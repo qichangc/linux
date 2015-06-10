@@ -1,0 +1,14 @@
+#日志相关
+
+lastlog #这个是用来查看/var/log/lastlog这个文件的，因为是二进制的，不能直接查看，所以要用命令
+
+#查看系统启动日志
+
+dmesg
+
+
+#新建一个日志
+比如说要建立一个iptables.log
+首先打开/etc/syslog.conf,在最后添加
+kern.warning /var/log/iptables.log
+然后保存退出，重启syslog 
