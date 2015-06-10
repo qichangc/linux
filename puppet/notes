@@ -1,0 +1,180 @@
+安装配置puppet
+安装篇
+1）装包，我使用的是rhel6.5，yum是自带的光盘以及一个在线epel源 服务端直接装
+	yum -y install puppet-server
+	然后启动服务service puppetmaster start 还要设置下开机启动
+	顺便看下监听的端口是否打开 lsof -i:8140
+2）然后在客户端装包
+	yum -y install puppet 启动服务 service puppet start 然后开机启动
+
+3）建立连接，客户端先要向服务端发起认证请求 
+	puppetd --test --server server.chen.com 
+   然后服务端这边 puppetca --list  就可以看到客户端的请求，然后
+	puppetca -s client.chen.com 
+   然后客户端再发起一次认证请求
+	puppetd --test --server server.chen.com
+   如果没有报错，就认证成功了
+
+4）给客户端分发文件：
+	先编辑fileserver.conf 这个文件
+		[chen] #类似samba，只是一个虚拟文件夹的名字，代表path路径
+		path /etc/
+		allow 172.16.158.0/24
+
+		[alen]
+		path /tmp/ #可以有很多级的目录比如/etc/sysconfig/。。。
+		allow 172.16.158.0/24
+        然后编辑manifests/site.pp 这个文件
+
+node default{
+        file {"/tmp/chen.txt":
+                content => "hello world!\n", //可以直接指定文件的内容，本机可以没有这个文件
+                ensure => present,
+		mode => 644,
+                owner => root,
+                group => root,
+        }
+
+
+
+        file{
+                "/etc/hosts":
+                source => "puppet://server.chen.com/chen/hosts",
+                group => root,
+                owner => root,
+                mode => "644",
+        }
+
+        file{
+                "/tmp/alen/hi":
+                source => "puppet://server.chen.com/alen/alen/hi",#客户机必须要有和服务器一样的目录结构，不然无法分发文件。
+                group => root,
+                owner => root,
+                mode => "644",
+        }
+}
+
+5）如果机器比较多，每个都认证好麻烦，有个办法，在服务器上编辑/etc/puppet/puppet.conf
+	然后在[main] 最后面添加一段 autosign = true
+   客户端这边直接连接就可以同步文件了。并不需要服务器确定认证，当然这样并不安全。
+
+6）客户端如何自动同步文件，每次都要在客户端手动同步文件，这是不科学的，修改配置文件puppet.conf
+	在[agent]最下面添加这一行
+	server = server.chen.com #指定服务器的域名
+	runinterval = 1800 #单位是秒 建议就是30分钟，改太小会影响机器性能。
+   最后记得，客户端重启下服务。
+
+7）管理客户机上的服务，阔以这样修改site.pp 添加：
+service {  
+["httpd","portmap",”nfs”]:  #多个服务就写成list的形式
+ensure => running;  
+"vsftpd":
+ensure => stopped; 
+ }
+
+这里有个bug，虽然完在客户机上做了自动同步设置，但是服务还是没能同步，必须要重启下客户机的puppet服务。
+
+8）自动给客户机安装程序包，同样编辑site.pp，添加：
+package { 
+["screen","ntp","sysstat"]: 
+ensure => "installed"; #这里是分号，并不是逗号，这些软件包必须能被yum安装才行。
+ }
+
+9) 同步文件夹里的所有内容，以同步yum.repos.d 下所有的文件为例子，编辑fileserver.conf ，添加
+	[yum]
+	path /etc/yum.repos.d/
+	allow 172.16.158.0/24
+   然后编辑site.pp，添加
+	file{
+                "/etc/yum.repos.d/": #指定文件夹
+                source => "puppet://server.chen.com/yum/",
+                group => root,
+                owner => root,
+                mode => "644",
+                recurse => true, #递归同步
+                force => true,	#强制
+                purge => true	#如果client上存在server上没有的文件，会被删除掉，保证一模一样
+        }
+
+10) 前面同步的内容都是对所有的client的，如果对不同的client同步不同的内容呢？使用模板即可。
+	首先，先清空fileserver.conf，然后删掉 site.pp的内容，然后在site.pp文件所在的目录下
+	创建一个新的文件，node.pp然后在site.pp文件里添加这句话：import "node.pp"
+	编辑node.pp 添加以下内容：
+
+node 'client1.chen.com'{
+	file
+	{"/etc/hosts":
+	source => "puppet://server.chen.com/modules/pushfile/hosts",
+	group => root,
+	owner => root,
+	mode => 644,
+	}
+	}
+node 'client2.chen.com'{
+	file
+	{"/etc/resolv.conf":
+	source => "puppet://server.chen.com/modules/pushfile/resolv.conf",
+	group => root,
+	owner => root,
+	mode => 644,
+	}
+	}
+
+然后创建这些目录，
+	mkdir -p /etc/puppet/modules/pushfile/{manifests,files,templates}
+然后拷贝文件
+	cp /etc/{hosts,resolv.conf} /etc/puppet/modules/pushfile/files
+
+只要配置不出错，就可以同步。
+另外，/etc/puppet/modules/pushfile/manifests/ 下并没有init.pp 这个文件，但是也可以同步，待研究。
+
+11）在客户端下执行shell脚本，比如说要执行一个安装nagios的脚本，使用模块的方法，
+	首先新建目录mkdir -p /etc/puppet/modules/nagios_ins/{manifests,files,templates}
+	然后把已经编写好的nagios_ins.sh文件放到上面新建目录的files下
+	lan后，编辑node.pp文件，如果之间设置了node.pp对应节点的内容，比如我上面就对两个client
+	做了同步设定，可以直接在该node所在的那个大括号下添加内容，如下:
+
+node 'client1.chen.com'{
+file
+{"/etc/hosts":
+source => "puppet://server.chen.com/modules/pushfile/hosts",
+group => root,
+owner => root,
+mode => 644,
+}
+#上面是之前的内容
+
+file
+{"/home/nagios_ins.sh": #表示你要把这个shell放到client的位置
+source => "puppet://server.chen.com/modules/nagios_ins/nagios_ins.sh", #shell文件在server的位置，注意，并不需要写file文件夹
+group => root,
+owner => root,
+mode => 755,#注意权限
+}
+exec{
+"install nagios":#可以理解为注释，写皮卡丘也可以啊
+command => "sh /home/nagios_ins.sh", #执行的命令，注意位置
+user => "root",
+path => ["/usr/bin","/usr/sbin/","/bin","/bin/sh"],#写好path变量，麻麻再也不怕完找不到命令了
+}
+
+}
+
+
+
+
+注意：
+1）服务端和客户端都必须设置好hosts文件和主机名，主机名最好包含域名，配置好了重启
+最好的方法是自己搭建个DNS服务器
+2）认证的时候可能会认证失败，请确保关闭了防火墙和selinux，然后执行以下操作
+	a.在客户端可以删除rm -rf /var/lib/puppet/ssl/,
+
+	b.在puppetmaster端，执行 puppetca -c 客户端主机名
+
+	c. 客户端在重新生成证书请求: puppet --test --server puppetmaster主机名
+
+	d.在puppetmaster端，执行 puppetca -s 客户端主机名
+3）site.pp下的内容，都放在node dufalut那个大括号里面。
+
+4) 在编写node.pp的时候，如后某些机器并不需要推送文件，但是已经做了同步设定，只要加上该node，
+然后写个大括号，里面不添加内容就好。
