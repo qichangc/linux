@@ -21,3 +21,13 @@
 
 8) 查看端口被哪些程序占用
 	lsof -i:22	#22号端口是ssh的
+
+9) 设定开启启动服务，chkconfig也可以
+	ntsysv
+   顺便说下最小化安装机器开启启动的服务：
+	crond 这个就不说了
+	network 也不说了
+	sshd	并不想说了。。
+	irqbalance 好东西，开着就对了
+	syslog 不开是傻逼
+  然后iptables和selinux都关了。没有理由
