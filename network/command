@@ -1,0 +1,30 @@
+#显示网络连接，路由表，端口等信息
+
+netstat -lntupa #这是比较常用的
+netstat -rn	#显示网关信息，相当与route -n
+
+#查看服务器网络连接状态和汇总信息
+netstat -an | awk '/^tcp/ {++S[$NF]} END {for (a in S) print a, S[a]}'
+#这个暂时解释不来
+
+
+结果:
+CLOSE_WAIT 2
+ESTABLISHED 12
+LISTEN 22
+
+解释：
+LISTEN:侦听来自远方的TCP端口的连接请求
+ESTABLISHED:代表一个打开的连接,我们常用此作并发连接数。
+CLOSE_WAIT:等待从本地用户发来的连接中断请求。
+TIME_WAIT:等待足够的时间以确保远程TCP接收到连接中断请求的确认。
+
+还有一些其他情况，就不说了，记不住啊。。
+
+#查看网关的另外一种方法，
+traceroute www.baidu.com #baidu的用处在此，第一跳的地址就是网关了
+
+#dns相关
+nslookup #直接输入进入交互模式，也可以后面接域名
+dig 	#后面直接接域名
+
