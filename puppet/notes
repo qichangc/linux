@@ -178,3 +178,8 @@ path => ["/usr/bin","/usr/sbin/","/bin","/bin/sh"],#写好path变量，麻麻再
 
 4) 在编写node.pp的时候，如后某些机器并不需要推送文件，但是已经做了同步设定，只要加上该node，
 然后写个大括号，里面不添加内容就好。
+
+5）打开客户端的8139端口，编辑puppet.conf 在[agent]下添加
+	listen = true
+	server=server.chen.com
+
