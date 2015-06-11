@@ -1,0 +1,4 @@
+1)修改hostory记录的命令
+vim /etc/profile
+将HISTSIZE=1000 改成自己想要的数值
+然后source /etc/profile
