@@ -12,4 +12,25 @@
 ifconfig下就可以看到新设置的ip了，然后ping下百度，靠，ping 不通，童话里都是骗人的！
 别急，可能是域名解析的问题，去真机看看/etc/resolv.conf 这个文件，里面有DNS地址，复制下来
 拷贝到本机的/etc/resolv.conf下，然后再ping下百度（论百度的用处 233），如果路由器没有坏掉的话，应该是可以通的。
+
+updates:2015年6月10日18时06分08秒
+
+完整的配置：
+DEVICE=eth0			#网卡名
+BOOTPROTO=none			#协议名，除此之外还可以写static，dhcp
+HWADDR=00:14:22:1B:71:20	#物理地址
+IPV6INIT=yes			#是否支持ipv6
+IPV6_AUTOCONF=yes		#是否自动配置ipv6
+ONBOOT=yes			#开机启动网卡
+NETMASK=255.255.255.192		#子网掩码
+IPADDR=203.93.236.146		#IP地址
+GATEWAY=203.93.236.129		#网关
+TYPE=Ethernet			#网卡类型，以太网
+PEERDNS=yes			#允许dhcp获取的dns地址覆盖本地的
+USERCTL=no			#不允许普通用户修改网卡配置
+
+#获取eth0的ip，仅仅包含数字
+ifconfig eth0 | grep "inet addr" | awk -F[:" "]+ '{print$4}'
+
+
  
