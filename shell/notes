@@ -2,3 +2,6 @@
 vim /etc/profile
 将HISTSIZE=1000 改成自己想要的数值
 然后source /etc/profile
+
+2) 使用vim编辑文件的时候，如果发现没有root权限，可以这样
+	: w!sudu tee %
