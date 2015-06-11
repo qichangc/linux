@@ -1,0 +1,5 @@
+#内核相关参数的调整
+1）增加抗syn flood的能力
+echo 'net.ipv4.tcp_syncookies=1' >> /etc/sysct.conf
+
+2）

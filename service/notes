@@ -1,0 +1,4 @@
+1）停止打印服务
+service cups stop
+ckconfig cups off
+注意是cups 不是cpus
