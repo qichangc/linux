@@ -1,5 +1,37 @@
 #内核相关参数的调整
 1）增加抗syn flood的能力
 echo 'net.ipv4.tcp_syncookies=1' >> /etc/sysct.conf
+sysctl -p 立即生效
 
-2）
+2）在web服务器上，并不许要记录文件的访问时间，如何取消呢
+编辑/etc/fatab 文件
+在包含大量小文件的分区的挂在选项上添加 noatime,nodiratime
+
+3）对于squid服务器，在大并发量的情况下，tcp time_wait 的数值会很高
+   如何降低，可以通过调整内核参数：
+   vim /etc/sysctl.conf
+	net.ipv4.tcp_fin_timeout = 30		#主动关闭套接字时，保持fin_wait-2的时间
+	net.ipv4.tcp_keepalive_time = 1200	#当启用keepalive时，给其发送消息的频率，默认2h
+	net.ipv4.tcp_syncookies = 1		#防范syn攻击
+	net.ipv4.tcp_tw_reuse = 1		#允许将time_wait套接字用于新的tcp连接
+	net.ipv4.tcp_tw_recycle = 1		#快速回收time_wait套接字
+	net.ipv4.ip_local_port_range = 1024 65000 #端口范围，扩大比较好
+	net.ipv4.tcp_max_syn_backlog = 8192	#syn队列长度，增长
+	net.ipv4.tcp_max_tw_buckets = 5000	#控制time_wait套接字最大的数量，默认为180000
+
+执行sysctl -p 立即生效。
+	对于apache或者nginx服务器，修改以下即可
+		net.ipv4.tcp_syncookies=1
+		net.ipv4.tcp_tw_reuse=1
+		net.ipv4.tcp_tw_recycle = 1
+		net.ipv4.ip_local_port_range = 1024 65000
+	
+	对于postfix邮件服务器，修改以下几项：
+		net.ipv4.tcp_fin_timeout = 30
+		net.ipv4.tcp_keepalive_time = 300
+		net.ipv4.tcp_tw_reuse = 1
+		net.ipv4.tcp_tw_recycle = 1
+		net.ipv4.ip_local_port_range = 5000 65000
+		kernel.shmmax = 134217728
+
+
