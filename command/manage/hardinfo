@@ -33,3 +33,5 @@ dd if=rhel40.img of=/dev/fd0 bs=10k
 dd if=/dev/cdrom of=/root/cd1.iso
 #还可以用来破坏分区表
 
+#扫描磁盘
+fsck -y

@@ -1,4 +1,6 @@
 #!/bin/bash
+# 主要是配合计划任务，比如某些任务执行的时间长的话，防止脚本没有执行完毕就再执行
+
 LOCKFILE=./$(basename $0)_lockfile 
 echo $$
  

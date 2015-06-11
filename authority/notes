@@ -1,0 +1,9 @@
+#权限相关
+
+1）给某个组分配sudo权限，编辑/etc/sudoers，在最后加入内容
+	%admin	ALL=(ALL) ALL
+
+ 然后命令行下	groupadd admin #组的名字是可以随便取的，和上面文件内容对应即可
+ 然后让添加的用户所属组为admin即可
+
+

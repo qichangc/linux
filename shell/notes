@@ -5,3 +5,15 @@ vim /etc/profile
 
 2) 使用vim编辑文件的时候，如果发现没有root权限，可以这样
 	: w!sudu tee %
+
+3）bash文件损坏咋办
+ 但用户模式进入系统
+ 先扫描磁盘	fsck -y
+ 重新挂在文件系统 mount -a
+ 切换到sh	chsh -s sh
+ 安装bash	pkg_add -r -v bash
+ 重启
+
+4）让程序在后台运行，有时候在命令后面加&就可以让程序进入后台，但是关掉终端程序也就关闭了，解决办法，
+ 在命令前加上nohup，然后输入exit退出终端，不要直接关闭哦。
+ 另外，在vim编辑的时候，可以先按Esc，然后按ctrl + z 停止vim，在外面干完活了，输入fg回到vim
