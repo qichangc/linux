@@ -1,0 +1,57 @@
+find的用法
+1）查找当前用户主目录下的所有文件,命令如下:
+	find ~ -print
+2）让当前目录中的文件属主具有读、写权限,并且文件所属组的用户和其他用户具有
+读权限的文件,其实就是查找权限为644的文件,命令如下:
+	find . -type f -perm 644 -exec ls -l {} \ ;
+
+3）查找系统中所有文件长度为0的普通文件,并列出它们的完整路径,命令如下:
+find / -type f -size 0 -exec ls -l {} \ ;
+
+4）查找/var/logs目录中更改时间在7日以前的普通文件,并在删除之前进行提示,命令
+如下所示:
+	find /var/logs -type f -mtime +7 -ok rm {} \ ;
+
+5)查找当前目录中所有属于root组的文件,命令如下所示:
+	find . -group root -exec ls -l { } \ ;
+
+6）find命令将删除目录中访问时间在7日以内且含有数字后缀的admin.log文件。
+	find . -name "admin.log[0-9]" -atime -7 -ok rm {} \ ;
+
+7）查找当前文件系统中的所有目录并排序,命令如下:
+	find . -type d | sort
+
+8）列出当前目录下的所有目录
+	ls –lF | grep /$
+
+9）为了查找属主账户已经被删除的文件,可以使用-nouser选项,这样就能够找到那些属
+主在/etc/passwd文件中没有有效账户的文件了。在使用-nouser选项时,不必给出用户
+名,find命令能够为你完成相应的工作。
+例如,希望在/home目录下查找所有的这类文件,可以用如下命令:
+	find /home -nouser -print
+	顺便：find / -nogroup-print
+
+10）在进行系统维护时,我们经常遇到一种情况,即发现磁盘在不停地发生写现象,这时候
+我们要定位这个正在写的文件,可以选择建立一个文件,比如test.txt,然后用以下命令找
+出这个频繁写磁盘的文件(最好带上一些限制大小的参数来精确定位),命令如下所示:
+	find / -newer test.txt -print
+
+
+
+xargs的用法
+
+1）下面的例子用来查找系统中的每一个普通文件,然后使用xargs命令来测试它们分别
+属于哪类文件。
+	find . -type f -print | xargs file
+
+2）在当前目录下查找所有用户具有读、写和执行权限的文件,并收回相应的写权限,
+命令如下:
+	find . -perm -777 -print | xargs chmod o-w
+
+3）用grep命令在所有的普通文件中搜索包含rmt字符的文件。find命令配合着exec和
+xargs使用,可以使用户对所匹配到的文件执行几乎所有的命令,如下所示:
+	find . -type f -print | xargs grep rmt
+	或者grep rmt -rl .
+
+4）
+
