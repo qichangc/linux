@@ -1,0 +1,60 @@
+使用ftp对cvs目录进行备份
+对象，一台cvs服务器，一台ftp备份服务器
+1）首先在ftp备份服务器下安装ftp服务，并且设置开机启动，注意关闭selinux和iptables
+2）编辑ftp的配置文件/etc/vsftpd/vsftpd.conf,编辑以下行
+  （用这个命令显示：grep -v "^#" /etc/vsftpd/vsftpd.conf | grep -v "^$"）
+	local_enable=YES
+	write_enable=YES
+	local_umask=022
+	dirmessage_enable=YES
+	xferlog_enable=YES
+	connect_from_port_20=YES
+	xferlog_std_format=YES
+	listen=YES
+	chroot_local_user=YES #这一条很重要
+	pam_service_name=vsftpd
+	userlist_enable=YES
+	tcp_wrappers=YES
+
+3）在ftp服务器上还需要注意创建CVS的备份用户，分配密码，并且将备份目录设置为该用户的家目录
+   方便管理
+
+4）备份脚本，在CVS服务器下运行。
+#/bin/bash
+#CVS backup in ftp
+
+CVSDIR=/home/cvsroot/project
+DATE=`date+%Y-&m-%d`
+OLDDATE=`date +%Y-%m-%d --date="-30 day"`
+
+BACKUPDIR=/data/backup/cvs-backup
+FILENAME=cvsbackup_$DATE
+
+if [ ! -d ${BACKUPDIR}/${DATE} ]; then
+	mkdir ${BACKUPDIR}/${DATE}
+fi
+
+if [ -d ${BACKUPDIR}/${OLDDATE} ]; then
+	rm -rf ${BACKUPDIR}/${OLDDATE}
+fi
+
+HOST=	#此处写ftp服务器的ip
+FTP_USER=cvs_user
+FTP_PASSWD=cvspasswd
+
+cd $CVSDIR
+tar -zcvf $FILENAME.tar.gz $CVSDIR
+
+ftp -i -n -v << ！
+open ${HOST}
+user ${FTP_USER} ${FTP_PASSWD}
+bin
+rmdir ${OLDDATE}
+mkdir ${DATE}
+cd ${DATE}
+mput *
+bye
+!
+
+
+	

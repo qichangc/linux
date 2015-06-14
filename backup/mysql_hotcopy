@@ -1,0 +1,105 @@
+实际工作中，热备份是必须的，一个小时的数据也是数据啊，使用mysql自带的
+mysqlhotcopy命令，主要是备份MyISAM引擎的数据库，内容如下：
+
+#!/bin/bash
+DATE='date+%y%m%d.%H'
+DATADIR="/data0/mysql/data" #MySQL数据库目录
+BACKDIR_DAILY="/data0/local/mysqld/daily" #每天备份数据库的目录
+BACKDIR_HOURLY="/data0/local/mysqld/hourly"#每小时备份数据库的目录
+INTERVAL="$1"
+TMPDIR="/var/tmp/" #临时目录
+TMPDIRH="$TMPDIR"hourly #临时每小时数据库目录
+TMPDIRD="$TMPDIR"daily #临时每小时备份数据库的目录
+LOGDIR="/data0/log/dbbackup/" #备份数据输出日志路径
+KEEPH_LOCAL=1
+USER=hotcopy #mysqlhotcopy用到的用户,必须要有select、reload、lock_tables 权限
+PASSWD=hotcopy # 密码
+HOST='hostname -s'
+MYVERSION="5.1"
+mkdir -p $LOGDIR
+case $INTERVAL in
+	hourly | HOURLY | Hourly | 1 )
+		cat >> "$LOGDIR"hourly.log << EOF
+		
+		~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		
+		Performing HOURLY level backup -- `date +$m-$d.%H:%M:%S`
+		
+		~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		EOF
+
+		mkdir -p $TMPDIRH # 创建临时目录
+		mkdir -p $BACKDIR_HOURLY #创建每小时备份目录
+		/usr/local/mysql/bin/mysqlhotcopy --allowold test -u $USER -p $PASSWD
+		$TMPDIRH > /dev/null
+		cat >> "$LOGDIR"hourly.log << EOF
+		 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                Performing HOURLY level backup -- `date +$m-$d.%H:%M:%S`
+                EOF
+		cd $TMPDIRH #进入临时目录
+		find . -maxdepth 1 -type d -user mysql -exec tar czf {}-"$DATE".tar.gz '{}' \ ;
+		# 查找是mysql用户的数据库,然后进行打包
+		find . -maxdepth 1 -type d -user mysql -exec rm -rf {} \ ; # 查找并删除用户名为mysql的文件夹
+		cat >> "$LOGDIR"hourly.log << EOF
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		Copying Local... -- 'date +$m-$d.%H:%M:%S'
+                EOF
+
+		chattr -i $BACKDIR_HOURLY # 移除备份目录的保护属性
+		find $BACKDIR_HOURLY -type f -mtime +7 -exec rm {} \ ;#查找并删除在7天以外的备份
+		mv * $BACKDIR_HOURLY #将打包好的文件移到每小时备份目录
+		chattr +i $BACKDIR_HOURLY # 对备份目录加保护
+	
+		cat >> "$LOGDIR"hourly.log << EOF
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		Ending -- `date +$m-$d.%H:%M:%S`
+		 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                EOF
+		exit 0
+		;;
+	daily | DAILY | Daily | 2)
+		cat >> "$LOGDIR"daily.log << EOF
+
+                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+                Performing DAILY level backup -- `date +$m-$d.%H:%M:%S`
+
+                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                EOF
+
+		mkdir -p $TMPDIRD #进入临时目录
+		mkdir -p $BACKDIR_DAILY #创建每天备份目录
+		/usr/local/mysql/bin/mysqlhotcopy --allowold test -u $USER -p $PASSWD
+
+		cat >> "$LOGDIR"hourly.log << EOF
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                Performing HOURLY level backup -- `date +$m-$d.%H:%M:%S`
+                EOF
+                cd $TMPDIRH #进入临时目录
+		find . -maxdepth 1 -type d -user mysql -exec tar czf {}-"$DATE".tar.gz '{}' \ ;
+		#查找是mysql用户的数据库,然后进行打包
+		find . -maxdepth 1 -type d -user mysql -exec rm -rf {} \ ; #查找备份数据库,并将在1天以外的备份删除
+		cat >> "$LOGDIR"daily.log << EOF
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                Copying Local... -- 'date +$m-$d.%H:%M:%S'
+                EOF
+
+		chattr -i $BACKDIR_DAILY #移除备份目录的保护属性
+		find $BACKDIR_DAILY -type f -mtime +$KEEPD_LOCAL -exec rm -rf '{}' \ ; #查找备份数据库，并将在1天以外的备份删除。
+		mv * $BACKDIR_DAILY #将打包好的文件移到每小时备份目录
+		chattr +i $BACKDIR_DAILY #对备份目录加保护
+
+		cat >> "$LOGDIR"daily.log << EOF
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                Ending -- `date +$m-$d.%H:%M:%S`
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                EOF
+                exit 0
+                ;;
+
+	*）
+		echo “invalid argument!”
+		exit1
+esac
+
+

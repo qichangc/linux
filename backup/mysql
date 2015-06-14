@@ -1,0 +1,52 @@
+mysql数据库的备份，也是将备份数据上传的ftp服务器，不同的是，本地也会保存一段时间的备份数据
+本地轮询时间为20天，ftp服务器轮询时间为60天，可以根据服务器的实际情况修改
+
+1）ftp服务器安装vsftpd并且配置，可以参照ftp文件中的配置
+
+2）在mysql客户端上运行以下脚本
+#!/bin/bash
+USERNAME=mysqlbackup 	#ftp服务器上创建mysql备份用户
+PASSWORD=mysqlbackup	#密码，不建议使用如此简单的密码
+DATE=`date +%Y-%m-%d`	
+OLDDATE=`date +%Y-%m-%d --date="-20 day"`	#本地轮询时间
+FTPOLDDATE=`date +%Y-%m-%d --date="-60 day"`	#ftp服务器轮询时间
+MYSQL=/usr/local/mysql/bin/mysql		#mysql命令的全路径，实际情况可能不同
+MYSQLDUMP=/usr/local/mysql/bin/mysqldump
+MYSQLADMIN=/usr/local/mysql/bin/mysqladmin
+SOCKET=/tmp/mysql.sock
+BACKDIR=/data/backup/db				#备份目录
+[ -d ${BACKDIR} ] || mkdir -p ${BACKDIR}
+[ -d ${BACKDIR}/${DATE} ] || mkdir ${BACKDIR}/${DATE}
+[ ! -d ${BACKDIR}/${OLDDATE} ] || rm -rf ${BACKDIR}/${OLDDATE}
+
+for DBNAME in mysql test report			#要备份的数据库
+do
+  ${MYSQLDUMP} --opt -u ${USERNAME} -p ${PASSWORD} -S ${SOCKET} ${DBNAME} | gzip > ${BACKDIR}/${DATE}/${DBNAME}-backup-${DATE}.sql.gz
+  echo "${DBNAME} has been backup successful"
+  /bin/sleep 5
+done
+
+HOST=  #ftp server ip
+FTP_USERNAME=dbmysql
+FTP_PASSWORD=dbmysql
+cd ${BACKDIR}/${DATE}
+ftp -i -n -v << !
+open ${HOST}
+user ${FTP_USERNAME} ${FTP_PASSWORD}
+bin
+cd ${FTPOLDDATE}
+mdelete *
+cd ..
+rmdir ${FTPOLDDATE}
+mkdir ${DATE}
+cd ${DATE}
+mput *
+bye
+!
+注意
+1）本脚本运行在从服务器下，运行前先停掉从服务器的mysql服务，这样不影响网站的正常运行，
+但是无法进行热备份。
+
+
+
+
