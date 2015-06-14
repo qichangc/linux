@@ -1,0 +1,49 @@
+#！/bin/bash
+#对nginx日志进行分析，也可以用于apache，可能需要改进，还没有做测试：）
+if [ $# -eq 0 ];then
+	echo "ERROR: no file selected"
+	exit 1
+else
+	LOG=$1
+fi
+
+if [ ! -f $LOG ]; then
+	echo "ERROR: not a file"
+	exit 1
+fi
+
+echo "Most of the ip:"
+echo "------------------------------"
+echo $LOG | awk '{print $1}' | sort | uniq -c | sort -nr | head -10
+echo "------------------------------"
+
+echo "Most of the time:"
+echo "------------------------------"
+echo $LOG | awk '{print $4}' | cut -c 14-18 | sort | uniq -c | sort -nr | head -10
+echo "------------------------------"
+
+echo "Most of the page:"
+echo "------------------------------"
+echo $LOG | awk '{print $11}' | sed 's/^.*\(.cn*\)\"/\1/g' | sort | uniq -c | sort -nr | head -10
+echo "------------------------------"
+
+echo "Most of the ip:"
+echo "------------------------------"
+echo $LOG | awk '{print $1}' | sort | uniq -c | sort -nr | head -10
+echo "------------------------------"
+
+echo "Most of the time / most of the ip:"
+echo "------------------------------"
+echo $LOG | awk '{print $4}' | cut -c 14-18 | sort -n | uniq -c | sort -nr | head -10 > timelog
+for i in `awk '{print $2}' timelog`
+do
+	num=`grep $i timelog | awk '{print $1}'`
+	echo "$i $num"
+	ip=`grep $i $LOG | awk '{print $1}' | sort -n | uniq -c| sort -nr | head -10`
+	echo $ip
+	echo
+done
+rm -rf timelog
+
+echo "------------------------------"
+
