@@ -16,5 +16,21 @@
 
 3）在nginxslave上执行同样的步骤，配置文件可以直接拷贝
 
-4）两台机器都启动naginx服务，使用lsof -i:80 检查
+4）两台机器都启动naginx服务，使用lsof -i:80 检查是否配置正确
 
+5）配置keepalived，在nginxmaster上安装keepalived的rpm包，可以在rpm find上下载
+	然后编辑/etc/keepalived/keepalived.conf,详情见文件
+
+6) 在nginxsalve上执行相同的操作，拷贝nginxmaster上的keepalived的配置文件，注意将文件中的ip修改成自己的
+
+7）两台机器都启动keepalived，在master上执行ip addr查看是否有VIP
+
+8）配置成功的话，就可以实现负载均衡高可用了，但是如果nginxmaster上的nginx进程
+出现了问题，
+	keepalived是无法将服务转移到nginxslave上的，
+	这个时候就需要手动在后台运行一个shell脚本来事实的监控nginx服务的状态，
+	如果出现问题，就停掉keepalived服务，详情见文件
+
+9) 配置web1和web2，直接安装httpd，启动服务，创建测试文件（注意权限），
+	记得关闭selinux和防火墙，就可以啦。
+	这里还没有做共享存储，实际中肯定要做滴。
