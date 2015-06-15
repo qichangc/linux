@@ -6,7 +6,7 @@ do
 	nginxpid=`ps -C nginx --no-header | wc -l`
 	if [ $nginxpid -eq 0 ];then
 		ulimit -SHn 65535
-		/usr/local/nginx/sbin/nginx
+		service nginx restart
 		sleep 5
 	        nginxpid=`ps -C nginx --no-header | wc -l`
 		if [ $nginxpid -eq 0 ];then
