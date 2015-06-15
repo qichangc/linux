@@ -1,0 +1,20 @@
+#搭建一个企业级的成熟的nginx+keepalived+apache负载均衡高可用方案
+机器列表 nginxmaster 192.168.1.1 (VIP 192.168.1.10)
+	 nginxslave  192.168.1.2
+	 web1	     192.168.1.3
+	 web2	     192.168.1.4
+
+1）	在nginxmaster上安装基础库
+		yum -y install gcc gcc+ gcc-c++ openssl openssl-devel
+	安装nginx 先要安装这个nginx-filesystem-1.0.15-11.el6.noarch.rpm
+	然后安装nginx-1.0.15-11.el6.x86_64.rpm
+	在最小化安装的rhel6.5机器下，除了配置自带的系统yum外，还需要安装额外的epelyum源
+	rpm -ivh http://download.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+	然后yum localinstall 上面提到的两个包，就可以安装nginx了，如果是下载源码编译安装，还需要手动创建nginx用户。
+
+2）在nginxmaster上配置nginx的配置文件 编辑/etc/nginx/nginx.conf, 详情见文件
+
+3）在nginxslave上执行同样的步骤，配置文件可以直接拷贝
+
+4）两台机器都启动naginx服务，使用lsof -i:80 检查
+
