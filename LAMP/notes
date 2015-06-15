@@ -1,0 +1,31 @@
+搭建基于discuz的LAMP论坛
+1）	测试机，DNS服务器，	192.168.1.1
+	apache+php		192.168.1.100
+	mysql			192.168.1.101
+	所有机器iptables和selinux都关闭掉，
+	DNS服务器中/var/named/chen.com.zone的部分内容
+			NS @
+			A  192.168.1.1
+		www	A  192.168.1.100
+		mysql	A  192.168.1.101
+
+2）	在192.168.1.100上搭建apache服务器，首先装包，yum -y install httpd mod_php php-mysql
+	启动httpd服务，并设置开机启动，然后执行
+	echo welcome >> /var/www/html/index.html
+	注意网站内容的权限，要让apache用户能够读到
+	在客户机上测试www.chen.com
+
+3）	在192.168.1.101上搭建mysql服务器，首先装包，yum -y install mysql-server mysql-connector-odbc
+	启动mysqld服务，并设置开机启动，第一次安装完毕后设置root密码
+	mysqladmin -u root password "000000"
+	登录mysql并给apache机器授权
+	mysql> grant all on discuz.* to discuz@'192.168.1.100' identified by '000000';
+	mysql> flush privileges;
+	在apache机器上登录mysql服务器测试下是否可以连接
+
+4）	在apache机器上安装discuz论坛，首先下载discuz到/tmp，然后解压会出现三个目录
+	创建/var/www/html/bbs 目录，将解压生成的upload目录复制到bbs目录
+	cp -r /tmp/discuz/upload/* /var/www/html/bbs
+	注意bbs目录以及下面所有的内容都要让apache能够读到
+	
+5）	客户机浏览器访问www.chen.com/bbs 安装论坛，按照提示进行即可

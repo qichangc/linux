@@ -1,0 +1,93 @@
+搭建基于discuz的LNMP论坛
+1）	测试机，DNS服务器，	192.168.1.1
+	apache+php		192.168.1.100
+	mysql			192.168.1.101
+	nginx + spawn-fcgi	192.168.1.102
+	所有机器iptables和selinux都关闭掉，
+	DNS服务器中/var/named/chen.com.zone的部分内容
+			NS @
+			A  192.168.1.1
+		www	A  192.168.1.100
+		mysql	A  192.168.1.101
+		nginx 	A  192.168.1.102
+
+2）	在nginx机器上安装nginx 和 spawn-fcgi，需要下载对应的rpm包，然后安装php php-mysql
+	启动nginx服务 service nginx start
+	修改nginx的配置文件
+		location ~ \.php$ {
+	        root           html;
+        	fastcgi_pass   127.0.0.1:9000;
+	        fastcgi_index  index.php;
+	        fastcgi_param  SCRIPT_FILENAME  /usr/share/nginx/html$fastcgi_script_name;
+	        include        fastcgi_params;
+	        }
+
+3）	配置spawn-fcgi
+	编辑/etc/init.d/spawn-fcgi 添加一行
+	OPTIONS="-u nginx -g nginx -p 9000 -a 127.0.0.1 -C 32 -F 1 -P /var/run/spawn-fcgi.pid -- /usr/bin/php-cgi"
+	然后 service spawn-fcgi start
+	如果成功启动，说明配置文件没什么问题。
+	lsof -i:9000 查看端口情况
+
+4）	在nginx机器下，编辑文件/usr/share/nginx/html/test.php (注意文件权限)  添加
+		<?php phpinfo(); ?>
+
+5）	客户机访问 nginx.chen.com/test.php 看是否有php信息的页面
+
+6）	迁移文件，将apache上的文件拷贝到nginx上
+	scp /etc/php.ini 192.168.1.102:/etc
+	cd /var/www/html
+	tar cf - bbs/ | ssh 192.168.1.102 "tar xf - -C /usr/share/nginx/html" #注意这个写法
+	在nginx机器上，将bbs目录的文件所有者设置为nginx 重启nginx和spawn-fcgi
+
+7）	数据库授权，在mysql机器上对nginx机器进行授权
+	grant all on discuz.* to discuz@'192.168.1.102' identified by '000000';
+	（mysql删除之前apache的授权：drop user discuz@'192.168.1.100'）
+
+8）	客户机器访问 nginx.chen.com/bbs/ 进行测试
+
+9）	在nginx机器上，修改/etc/nginx/conf.d/default.conf文件
+		location / {
+	        root   /usr/share/nginx/html/bbs;
+	        index  index.php index.html index.htm;
+	        }		
+		
+		location ~ \.php$ {
+     		root           html;
+	        fastcgi_pass   127.0.0.1:9000;
+        	fastcgi_index  index.php;
+	        fastcgi_param  SCRIPT_FILENAME  /usr/share/nginx/html/bbs$fastcgi_script_name;
+	        include        fastcgi_params;
+		}	
+	重启nginx和spawn-fcgi 客户端访问nginx.chen.com测试
+
+10）	可以将客户机中DNS的中www记录指向nginx机器了
+
+11）	将spawn-fcgi独立放在一台机器cgi.chen.com上，提高性能
+	cgi机器ip为192.168.1.103，注意配置DNS
+	装包，安装php php-mysql spawn-fcgi 添加spawn-fcgi
+
+12)	在nginx机器上 拷贝文件到cgi机器上
+	scp /etc/php.ini cgi.chen.com:/etc
+	scp /etc/sysconfig/spawn-fcgi cgi.chen.com:/etc/sysconfig
+	cd /usr/share/nginx/html
+	tar -cf - bbs/ | ssh cgi.chen.com "tar -xf - -C /home/spawn-fcgi/"
+	在cgi机器上 注意bbs目录以及下面所有内容的所有者为spawn-fcgi
+
+13)	在cgi机器上 编辑/etc/sysconfig/spawn-fcgi 添加
+	OPTIONS="-u spawn-fcgi -g spwan-fcgi -p 9000 -C 32 -F 1 -P /var/run/spawn-fcgi.pid -- /usr/bin/php-cgi"
+	重启spawn-fcgi服务 查看9000端口的监听情况
+
+14）	在nginx机器上，修改配置文件 /etc/nginx/conf.d/default.conf
+		location ~ \.php$ {
+                root           html;
+                fastcgi_pass   192.168.1.103:9000;
+                fastcgi_index  index.php;
+                fastcgi_param  SCRIPT_FILENAME  /home/spawn-fcgi/bbs$fastcgi_script_name;
+                include        fastcgi_params;
+                }
+	重启nginx服务
+
+15）	数据库对cgi机器进行授权，命令上面有，改下ip就行
+
+16）	客户端访问论坛测试，可以发个帖子传个文件，文件应该是在cgi机器下的
