@@ -1,0 +1,125 @@
+1）linux挂在windows的共享文件夹
+	mount -t cifs //windowsip/dir /var/tmp/share -o username=administrator,password=passwd
+
+2）查看http的并发请求数以及TCP连接状态
+	netstat -n | awk '/^tcp/ {++S[$NF]} END {for (a in S) print a, S[a]}'
+	#NF表示字段数 S是一个数组
+
+3）使用tcpdump嗅探80端口的访问排行
+	tcpdump -i eth0 -tnn dst port 80 -c 1000 | awk -F"." '{print $1.$2.$3.$4}' | sort |uniq -c | sort -nr | head -20
+	
+4）统计指定目录的文件个数
+	find / -type f | wc -l
+
+5）查看ip连接数
+	netstat -n | awk '/^tcp/ {print $5}' | awk -F: '{print $1}' | sort | uniq -c | sort -nr
+
+6）shell下生成32位随机数密码
+	tr -dc '~`!@#$%^&*()_+-=[]{}|\,./<>?A-Za-z0-9' < /dev/urandom | head -c 32 | xargs
+	#有个BUG，无法输出\ 
+	
+7）统计apache的access.log中访问量最多的5个ip
+	cat access_log | awk '{print $1}' | uniq -c | sort -rn | head -n 5
+
+8）查看二进制文件的内容
+	cat /var/log/lastlog | hexdump -C
+
+9）ps aux 中：
+	a表示所有与终端相关的进程
+	u表示显示用户导向的用户列表
+	x表示所有与终端无关的进程
+
+	VSZ表示进程占用的虚拟内存空间
+	RSS表示占用的实际物理内存空间
+	
+	S 可中断的睡眠状态
+	R 运行状态
+	D 不可中断的运行状态
+	T 停止状态
+	Z 僵尸进程
+
+10）监测并修复分区
+	e2fsck -p /dev/vda5 #第一快逻辑分区
+
+11）linux开机启动顺序
+	POST（加电自检）-> 读取bootloader（grub）也就是第0磁头的446字节 -> 加载kernel，初始化initrd，只读方式挂在根文件系统 
+	-> 读取/sbin/init，/etc/inittab -> 读取/etc/rc.d/rc.sysinit 以读写方式重新挂在根文件系统
+	-> 读取/etc/rc.d/rcN.d/ 启动s开头的服务，关闭k开头的服务 -> 执行/sbin/mingetty 
+
+12）保存当前磁盘分区表
+	sfdisk -d /dev/sda > /tmp/sdapart.bak
+
+13）监测修复文件系统
+	umount /dev/sda5
+	e2fsck -a /dev/sda5
+	mount -a
+
+14）修复grub
+	插入光盘进入rescue模式，建议启动网络，一定要选择加载本地文件系统，不然就修复不了。
+	进入shell下，执行 chroot /mnt/sysimage 这样就进入本地的系统了，
+	复制/usr/share/grub/系统版本/* 到/boot/grub/ 下，这个时候还缺少一个grub.conf
+	可以手动创建并且编辑这个文件，我比较懒，直接从别的机器scp过来
+	如果内核也有问题，建议安装光盘里自带的系统内核，当然光盘要挂载
+	最后安装grub 执行 grub-install /dev/sda 
+	最最后 创建一个文件 touch /.autorelabel 这是防止启动的时候selinux出问题
+	然后exit退出，reboot重新启动
+	顺便贴下grub.conf的内容
+		default=0
+		timeout=5
+		splashimage=(hd0,0)/grub/splash.xpm.gz
+		hiddenmenu
+		title Red Hat Enterprise Linux (2.6.32-431.el6.x86_64)
+	        root (hd0,0)
+	        kernel /vmlinuz-2.6.32-431.el6.x86_64 ro root=/dev/mapper/VolGroup-lv_root rd_NO_LUKS LANG=en_US.UTF-8 rd_NO_MD rd_LVM_LV=VolGroup/lv_swap SYSFONT=latarcyrheb-sun16 crashkernel=auto rd_LVM_LV=VolGroup/lv_root  KEYBOARDTYPE=pc KEYTABLE=us rd_NO_DM rhgb quiet
+        	initrd /initramfs-2.6.32-431.el6.x86_64.img
+
+	顺便说下加密grub，在splashimage下添加password=000000 即可加密，
+	建议先使用grub-md5-crypt 生成加密后的密码，然后添加password --md5 密码
+
+15）在指定范围内取随机数
+	echo $[$RANDOM%20] 
+	$[] 内可以处理数学运算，也可以用$(())
+
+16）限定apache每秒钟连接数为1，峰值为3
+	iptables -A INPUT -d 192.168.1.100 -p tcp -dport 80 -m limit --limit 1/second --limit-burst 3 -j ACCEPT
+
+17）FTP主动模式与被动模式
+	主动模式下ftp服务器会同时开启port 21命令端口和port 20数据端口，使用port 20主动连接客户端
+	被动模式下ftp服务器开启port 21命令端口和一个非特权端口，被动接受客户端的连接请求
+
+18）显示/etc/inittab 中以#开头，且后面跟着一个或者多个空白字符，而后又跟了任意非空白字符的行
+	grep "^\#[ ]\{1,\}.\{1,\}" /etc/inittab
+	#空格也可以用[[:space:]] 来表示
+
+19）显示/etc/inittab 中包含了 :一个数字: 的行
+	grep "\:[0-9]\{1\}\:" /etc/inittab
+
+20）将用户编写的脚本加入到系统服务中
+	!脚本内容
+		#!/bin/bash
+		#chkconfig: 235 80 05
+		#description:test shell
+		echo "hi"
+	执行命令
+		mv test /etc/init.d/
+		chmod a+x /etc/init.d/test
+		chkconfig --add test
+		service test start
+
+21）批量添加20个用户，用户名为user1-20，密码为用户名后跟5个随机字符
+	#!/bin/bash
+	for i in {1..20};do
+		passwd=$(tr -dc '~!@#$%^&*()_+-={}[]<>?,.' < /dev/urandom | head -c 5 | xargs )
+		useradd user${i}
+		echo user{i}${passwd} | passwd --stdin user${i}
+		echo "user${i} ========== user${i}${passwd}" >> ./userlist.out
+	done
+	echo "done"
+
+22）测试192.168.1.0/24的网络内，在线的ip
+	#!/bin/bash
+	ip="192.168.1."
+	for i in {1..254};do
+		ping -c 1 ${ip}${i} &>/dev/null && echo "${ip}${i}" >> ip.txt
+	done
+	echo "done"
