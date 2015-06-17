@@ -1,0 +1,16 @@
+#搭建一个企业级的成熟的LVS+keepalived+apache负载均衡高可用方案
+机器列表 LVSmaster 172.16.158.133 (VIP 172.16.158.140)
+	 LVSslave  172.16.158.134
+	 web1	     172.16.158.128
+	 web2	     172.16.158.135
+
+1）在LVSmaster上安装LVS的安装包ipvsadm 以及keepalived，安装完成之后，创建/usr/local/sbin/lvsdr.sh
+	内容见配置文件，同时编辑修改keepalived的配置文件
+
+2）在LVSmaster上执行同样的操作，文件复制过来即可，keepalived的配置文件记得做相应的修改
+
+3）在web1上，安装http服务，创建/usr/local/sbin/lvsadm.sh，内容见配置文件
+
+4）在web2上，执行同样的操作，配置文件直接复制过来即可。
+
+5）启动四台机器上添加的脚本，并且启动keepalived服务
