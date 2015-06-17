@@ -6,7 +6,7 @@
 	#NF表示字段数 S是一个数组
 
 3）使用tcpdump嗅探80端口的访问排行
-	tcpdump -i eth0 -tnn dst port 80 -c 1000 | awk -F"." '{print $1.$2.$3.$4}' | sort |uniq -c | sort -nr | head -20
+	tcpdump -i eth0 -tnn dst port 80 -c 1000 | awk -F"." '{print $1"."$2"."$3"."$4}' | sort |uniq -c | sort -nr | head -20
 	
 4）统计指定目录的文件个数
 	find / -type f | wc -l
