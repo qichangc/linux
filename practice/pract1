@@ -110,6 +110,7 @@
 	#!/bin/bash
 	for i in {1..20};do
 		passwd=$(tr -dc '~!@#$%^&*()_+-={}[]<>?,.' < /dev/urandom | head -c 5 | xargs )
+		# or passwd=`echo /dev/urandom | strings -n 5 | head -n 1`
 		useradd user${i}
 		echo user{i}${passwd} | passwd --stdin user${i}
 		echo "user${i} ========== user${i}${passwd}" >> ./userlist.out
