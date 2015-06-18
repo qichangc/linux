@@ -1,0 +1,132 @@
+iptables：
+三张表，以及他们的链：
+filter：	INPUT FORWARD OUTPUT
+nat：		PREOUTING POSTROUTING OUTPUT
+mangle：	INPUT OUTPUT FORWARD PREROUTING POSTROUTING
+
+1）添加规则
+	追加：iptables -t filter -A INPUT -J DROP
+	插入：iptables -t filter -I INPUT [n] -J DROP
+	删除：iptables -t filter -D INPUT n
+	替换：iptables -t filter -R INPUT n -J DROP
+	默认：iptables -t filter -P INPUT DROP
+	(默认优先级最低，如果是ssh登录的，设置此默认规则之前，一定要先允许自己)
+	清空：iptables -t filter -F
+	（不影响默认规则）
+	保存：service iptables save
+	备份：iptables-save > /tmp/iptables.bak
+	恢复：iptables-restore < /tmp/iptables.bak
+	显示：iptables -t filter -Lvn
+
+2）匹配条件
+	地址类型：
+        目的地址：-d ip|网段
+        来源地址：-s ip|网段
+
+	网络接口类型：
+		输入接口：-i eth0 #POSTROUTING 不能用，因为路由之后改源ip，说明数据包是出去的
+		输出接口：-o eth0 #同样，PREROUTING不能用
+
+	协议类型：-p tcp|udp|icmp
+
+	端口类型：#配合协议类型一起使用，口味更加
+		目的端口：--dport n|n:|:n|n:N
+		来源端口：--sport n|n:|:n|n:N
+
+3）处理方式：
+	-j ACCEPT DROP REJECT SNAT DNAT MASQUERADE
+		ACCEPT：接受
+		DROP：  丢弃，没有回应
+		REJECT：拒绝，有回应
+		SNAT：  转换来源地址
+		DNAT：	转换目标地址 #这两个编辑nat表时使用
+		MASQUERADE：动态源地址转换（动态ip情况下使用）
+
+4）附加模块：
+	-m state mac limit multiport
+		state --state NEW|RELATED|ESTABLISHED|INVALID
+		mac --mac--source MAC
+		limit --limit 50/s
+		multiport --ports 21,22,25
+
+练习：
+1）web服务器应该设置的策略
+	iptables -A INPUT -i lo -j ACCEPT
+	iptables -A INPUT -p tcp -m multiport 22,80 -j ACCEPT
+	iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+	iptables -P INPUT DROP
+
+2）限制内网用户
+	首先开启转发功能 echo "1" > /proc/sys/net/ipv4/ip_forward
+	iptables -A FORWARD -s 192.168.1.1 -j DROP
+	可以先使用arp 探测下mac地址
+	iptables -A FROWARD -m mac --mac-source ff:ff:ff:ff:ff:ff -j DROP
+	iptables -A FORWARD -d www.youku.com -j DROP
+
+3）内网服务器通过防火墙对外提供服务
+	iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 80 -j DNAT --to 192.168.1.1
+
+4）ping相关
+	可以ping别人：iptables -A INPUT -p icmp --icmp-type 0 -j ACCEPT
+	不让别人ping：iptables -A INPUT -p icmp --icmp-type 8 -j REJECT
+
+5)  设定INPUT为ACCEPT		iptables -P INPUT ACCEPT
+	设定OUTPUT为ACCEPT		iptables -P OUTPUT ACCEPT
+	设定FORWARD为ACCEPT 	iptables -P FORWARD ACCEPT
+	
+6）定制源地址访问策略 
+	接收来自192.168.0.3的IP访问
+	iptables -A INPUT -i eth0 -s 192.168.0.3 -j ACCEPT
+	拒绝来自192.168.0.0/24网段的访问
+	iptables -A INPUT -i eth0 -s 192.168.0.0/24 -j DROP
+
+7） 目标地址192.168.0.3的访问给予记录,并查看/var/log/message
+	iptables -A INPUT -s 192.168.0.3 -j LOG
+
+8）定制端口访问策略
+	拒绝任何地址访问本机的111端口
+	iptables -A INPUT -i eth0 -p tcp --dport 111 -j DROP
+	拒绝192.168.0.0/24网段的1024-65534的源端口访问SSH
+	iptables -A INPUT -i eth0 -p tcp -s 192.168.0.0/24 --sport 1024:65534 --dport 22 -j DROP
+
+9）定制CLIENT端的防火墙访问状态 
+	清除所有已经存在的规则;
+	iptables -F
+	iptables -X
+	iptables -Z
+	设定预设策略,除了INPUT设为DROP,其他为ACCEPT;
+	iptables -P INPUT DROP
+	iptables -P OUTPUT ACCEPT
+	iptables -P FORWARD ACCEPT
+	开放本机的lo可以自由访问;
+	iptables -A -i lo -j ACCEPT
+	设定有相关的封包状态可以进入本机;
+	iptables -A INPUT -m state RELATED,ESTABLISHED -j ACCEPT
+	iptables -A INPUT -m state INVALID -j DROP
+
+10）定制防火墙的MAC地址访问策略
+	清除所有已存的规则
+	iptables -F 
+	iptables -X
+	iptables -Z
+	将INPUT设为DROP
+	iptables -A INPUT -j DROP
+	将目标计算机的MAC设为ACCEPT
+	iptables -A INPUT -i eth0 -m MAC --mac-source ff:ff:ff:ff:ff:ff -j ACCEPT
+
+11）定制防火墙的NAT策略
+	重置ip_forward 为1
+	echo 1 > /proc/sys/net/ipv4/ip_forward
+	将来源为192.168.1.1的数据包转发到172.16.158.1
+	iptables -t nat -A PREROUTING -s 192.168.1.1 -o eth0 -j DNAT --to-destination 172.16.158.1
+	将发往172.16.158.1的数据包的源地址改为192.168.1.254
+	iptables -t nat -A POSTROUTING -d 172.16.158.1 -i eth0 -j SNAT --to-source 192.168.1.254
+
+12）观察转发的数据包
+	iptables -Lnv
+
+13）端口转发策略
+	通过DNAT设定为所有访问192.168.6.217的22端口，都访问到192.168.6.191的22端口
+	iptables -t nat -A PREREOUTING -d 192.168.6.217 -p tcp --dport 22 -j DNAT --to-destination 192.168.6.192:22
+	设定所有到192.168.6.191的22端口的数据包都通过FORWARD转发
+	iptables -A FORWARD -d 192.168.6.191 --dport 22 -j ACCEPT
